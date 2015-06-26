@@ -6,16 +6,20 @@
 (defvar dctrl-relay-bootloader-delay 6)
 (defvar dctrl-relay-device-prefix "/dev/serial/by-id/")
 (defvar dctrl-relay-default-devices '("usb-Devantech_Ltd._USB-RLY08*"
-				      "usb-FTDI_FT232R_USB_UART_A1009ZG8-*"))
+				      "usb-FTDI_FT232R_USB_UART_A100*"))
 (defvar dctrl-relay-default-rate 19200)
 
 (defvar dctrl-quick-press-time "0.2")
 
-(defvar dctrl-relay-map
-  '((power	.	( ?i . ?s ))
-    (plug	.	( ?t . ?j ))
-    (vol-down	.	( ?l . ?v ))
-    (vol-up	.	( ?k . ?u ))))
+(defcustom dctrl-relay-map
+  '((power	.	( "i" . "s" ))
+    (plug	.	( "orpq" . "ehfg" ))
+    (vol-down	.	( "l" . "v" ))
+    (vol-up	.	( "k" . "u" ))
+    (combo	.	( "lk" . "vu" ))
+    )
+  "Relay board mapping"
+  )
 
 (defvar dctrl-relay-status-default
   (mapcar (lambda (x) (cons (car x) nil)) dctrl-relay-map))
@@ -43,17 +47,16 @@
 (defun dctrl-relay-send-command (cmd push-type)
   (let ((keys (assoc-default cmd dctrl-relay-map)))
     (if (eq push-type 'quick-press)
-	(dctrl-relay-run-double (char-to-string (car keys)) (char-to-string (cdr keys)))
+	(dctrl-relay-run-double (car keys) (cdr keys))
 	(progn
 	  (setcdr (assoc cmd dctrl-relay-status) push-type)
-	  (dctrl-relay-run (char-to-string (if push-type (car keys) (cdr keys))))))))
+	  (dctrl-relay-run (if push-type (car keys) (cdr keys)))))))
 
 
 (defun dctrl-relay-toggle-command (cmd)
   (unless dctrl-relay-status
     (setq dctrl-relay-status dctrl-relay-default-status))
-  (let ((keys (assoc-default cmd dctrl-relay-map))
-	(new-status (not (assoc-default cmd dctrl-relay-status))))
+  (let ((new-status (not (assoc-default cmd dctrl-relay-status))))
     (setcdr (assoc cmd dctrl-relay-status) new-status)
     (dctrl-relay-send-command cmd new-status)))
 
@@ -80,6 +83,14 @@
 (defun dctrl-relay-action-keypress ()
   (let ((key (ido-completing-read "Key: " (mapcar (lambda(x) (symbol-name (car x))) dctrl-relay-map))))
     (dctrl-relay-send-command (intern key) 'quick-press)))
+
+(defun dctrl-relay-action-holdkey ()
+  (let ((key (ido-completing-read "Key: " (mapcar (lambda(x)(symbol-name (car x))) dctrl-relay-map))))
+    (dctrl-relay-send-command (intern key) t)))
+
+(defun dctrl-relay-action-releasekey ()
+  (let ((key (ido-completing-read "Key: " (mapcar (lambda(x)(symbol-name (car x))) dctrl-relay-map))))
+    (dctrl-relay-send-command (intern key) nil)))
 
 (defun dctrl-relay-force (combo delay)
   (nconc (dctrl-relay-action-force-shutdown)
