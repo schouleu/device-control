@@ -396,7 +396,12 @@ functions should use this."
     (let ((inhibit-read-only t))
       (save-excursion-if-not-at-point-max (current-buffer)
 	(goto-char (point-max))
-	(insert (replace-regexp-in-string "\r" "\n" str))))))
+	(mapc (lambda(s)
+		(forward-line 0)
+		(delete-region (line-beginning-position) (line-end-position))
+		(insert s))
+	      (split-string (replace-regexp-in-string "\r\n" "\n" str) "\r"))))))
+
 
 (defmacro dctrl-internal-run-process (args start-process-fun)
   `(lexical-let ((args args))
